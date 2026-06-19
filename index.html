@@ -155,9 +155,33 @@
 
     .empty-st{text-align:center;padding:24px 12px;color:var(--t3);font-size:13px}
     .empty-st i{font-size:28px;display:block;margin-bottom:8px}
+
+    /* NAME SETUP */
+    .name-sheet{position:fixed;inset:0;background:rgba(6,13,26,.97);display:flex;align-items:flex-end;justify-content:center;z-index:200;padding-bottom:var(--safe-bot)}
+    .name-sheet-inner{background:var(--n1);border-radius:24px 24px 0 0;padding:28px 20px calc(24px + var(--safe-bot));width:100%;max-width:430px}
+    .name-handle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 24px}
+    .name-icon{width:52px;height:52px;background:var(--b2);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+    .name-icon svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round}
+    .name-title{font-size:22px;font-weight:800;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-bottom:6px}
+    .name-sub{font-size:13px;color:var(--t2);text-align:center;margin-bottom:24px;line-height:1.5}
   </style>
 </head>
 <body>
+<div class="name-sheet" id="nameSheet">
+  <div class="name-sheet-inner">
+    <div class="name-handle"></div>
+    <div class="name-icon"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg></div>
+    <div class="name-title">Hardline Tracker</div>
+    <div class="name-sub">What's your name? We'll personalise the app for you.</div>
+    <div style="margin-bottom:16px">
+      <input type="text" id="nameInput" placeholder="e.g. Tyler" inputmode="text" autocomplete="given-name"
+        style="text-align:center;font-size:20px;font-weight:700;letter-spacing:.5px;padding:16px"
+        onkeydown="if(event.key==='Enter')saveName()">
+    </div>
+    <button class="btn-primary" onclick="saveName()">Let's go</button>
+  </div>
+</div>
+
 <div class="app">
   <div class="header">
     <div class="header-top">
@@ -171,6 +195,7 @@
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         <span class="phase-pill" id="heroPill"></span>
         <div class="header-date"><strong id="hDay"></strong><span id="hDate"></span></div>
+        <div id="userGreeting" style="font-size:10px;color:var(--t2);letter-spacing:.5px"></div>
       </div>
     </div>
   </div>
@@ -180,7 +205,7 @@
     <!-- WEIGHT TAB -->
     <div id="tab-log" class="section active">
       <div class="phase-sw">
-        <div class="phase-sw-lbl">Current phase</div>
+        <div class="phase-sw-lbl" id="phaseLbl">Current phase</div>
         <div class="phase-btns">
           <button class="pbtn" id="pb-bulk" onclick="switchPhase('bulk')"><i class="ti ti-trending-up"></i>Lean Bulk</button>
           <button class="pbtn" id="pb-cut" onclick="switchPhase('cut')"><i class="ti ti-trending-down"></i>Cut</button>
@@ -351,10 +376,11 @@
       <div class="card"><div class="card-title">Food log</div><div id="fHist"></div></div>
       <div style="margin-top:8px;padding:12px;border-top:1px solid var(--bdr)">
         <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;text-align:center">Data backup</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
           <button onclick="exportData()" style="background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:10px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;color:var(--t3);display:flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation"><i class="ti ti-download" style="font-size:14px"></i>Export</button>
           <button onclick="document.getElementById('importFile').click()" style="background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:10px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;color:var(--t3);display:flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation"><i class="ti ti-upload" style="font-size:14px"></i>Import</button>
         </div>
+        <button onclick="changeName()" style="background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:10px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;font-family:inherit;color:var(--t3);display:flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation;width:100%"><i class="ti ti-user" style="font-size:14px"></i>Change name</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       </div>
     </div>
@@ -371,6 +397,26 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
   const DATA_VERSION=2;
+  let userName = localStorage.getItem('hl6_name')||'';
+
+  function saveName(){
+    const val = document.getElementById('nameInput').value.trim();
+    if(!val){alert('Enter your name to continue');return;}
+    userName = val;
+    localStorage.setItem('hl6_name', userName);
+    document.getElementById('nameSheet').style.display='none';
+    applyName();
+  }
+
+  function applyName(){
+    if(!userName) return;
+    // greeting in header
+    const greet = document.getElementById('userGreeting');
+    if(greet) greet.textContent = 'Hey, '+userName+' 👋';
+    // phase switcher label
+    const lbl = document.getElementById('phaseLbl');
+    if(lbl) lbl.textContent = userName+"'s phase";
+  }
   function migrateData(){
     const v=parseInt(localStorage.getItem('hl_version')||'1');
     if(v<2){
@@ -416,6 +462,12 @@
   updateStats();
   if(targets.cal)recalcToday();
 
+  // Name setup
+  if(userName){
+    document.getElementById('nameSheet').style.display='none';
+    applyName();
+  }
+
   function switchPhase(p){
     currentPhase=p;localStorage.setItem('hl6_phase',p);
     recordPhaseChange(p);updatePhaseUI();toast('Phase: '+PL[p]);
@@ -443,7 +495,7 @@
   function getNum(id){return parseFloat(document.getElementById(id)?.value)||0;}
 
   function exportData(){
-    const payload={version:DATA_VERSION,exported:new Date().toISOString(),wData,fData,targets,phaseLog,currentPhase};
+    const payload={version:DATA_VERSION,exported:new Date().toISOString(),wData,fData,targets,phaseLog,currentPhase,userName};
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);const a=document.createElement('a');
     a.href=url;a.download='hardline-backup-'+today()+'.json';a.click();URL.revokeObjectURL(url);
@@ -463,7 +515,8 @@
         localStorage.setItem('hl6_phases',JSON.stringify(phaseLog));
         localStorage.setItem('hl6_phase',currentPhase);
         localStorage.setItem('hl_version',DATA_VERSION);
-        updatePhaseUI();updateStats();toast('Backup restored!');
+        if(d.userName){userName=d.userName;localStorage.setItem('hl6_name',userName);}
+        updatePhaseUI();updateStats();applyName();toast('Backup restored!');
       }catch(err){alert('Could not read file.');}
     };
     reader.readAsText(file);e.target.value='';
@@ -787,6 +840,13 @@
     const open=el.style.display==='block';
     el.style.display=open?'none':'block';
     chevron.style.transform=open?'rotate(0deg)':'rotate(180deg)';
+  }
+
+  function changeName(){
+    const sheet = document.getElementById('nameSheet');
+    document.getElementById('nameInput').value = userName||'';
+    sheet.style.display='flex';
+    setTimeout(()=>document.getElementById('nameInput').focus(),300);
   }
 
   function delW(date){wData=wData.filter(e=>e.date!==date);save();drawWHist();updateStats();}
